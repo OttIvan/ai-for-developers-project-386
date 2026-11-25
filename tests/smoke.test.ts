@@ -2,7 +2,7 @@ import { expect, test } from 'vitest';
 import { getHealth } from '../frontend/src/api/generated/sdk.gen';
 import { buildApp } from '../server/app.ts';
 
-test('the application serves both public pages and answers the generated health call', async () => {
+test('the application serves the home, booking and owner pages and answers the generated health call', async () => {
   const app = buildApp({ serveFrontend: true });
 
   try {
@@ -15,6 +15,11 @@ test('the application serves both public pages and answers the generated health 
     expect(bookingPage.status).toBe(200);
     expect(bookingPage.headers.get('content-type')).toContain('text/html');
     expect(await bookingPage.text()).toContain('id="root"');
+
+    const ownerPage = await fetch(new URL('/owner', address));
+    expect(ownerPage.status).toBe(200);
+    expect(ownerPage.headers.get('content-type')).toContain('text/html');
+    expect(await ownerPage.text()).toContain('id="root"');
 
     const { data, response } = await getHealth({ baseUrl: address });
     expect(response.status).toBe(200);

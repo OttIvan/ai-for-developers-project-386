@@ -1,0 +1,66 @@
+.site-header .owner-link {
+  margin-inline-start: auto;
+  text-align: end;
+}
+
+.event-type-form {
+  margin-block: 1.5rem;
+}
+
+.event-type-form h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+}
+
+.event-type-form fieldset {
+  display: grid;
+  gap: 0.85rem;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.event-type-form label {
+  display: grid;
+  gap: 0.25rem;
+  font-weight: 650;
+}
+
+.event-type-form :is(input, textarea) {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #a3afc4;
+  border-radius: 0.5rem;
+  color: inherit;
+  font: inherit;
+  font-weight: 400;
+}
+
+.event-type-form small {
+  margin-top: -0.55rem;
+  color: #495971;
+}
+
+.event-type-form button {
+  justify-self: start;
+  border: 0;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.event-type-form button:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.event-type-form :focus-visible {
+  outline: 3px solid #334ba1;
+  outline-offset: 2px;
+}
+
+.event-type-form [role="alert"] {
+  color: #a02424;
+}

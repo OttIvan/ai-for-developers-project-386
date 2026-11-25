@@ -2,6 +2,7 @@ import fastifyStatic from '@fastify/static';
 import Fastify from 'fastify';
 import { fileURLToPath } from 'node:url';
 import type { EventType } from '../frontend/src/api/generated/types.gen.ts';
+import { registerCreateEventType } from './create-event-type.ts';
 
 interface AppOptions {
   logger?: boolean;
@@ -30,6 +31,7 @@ export function buildApp({
   }, async () => ({ status: 'ok' }));
 
   app.get('/api/event-types', async () => Array.from(eventTypesById.values()));
+  registerCreateEventType(app, eventTypesById);
 
   if (serveFrontend) {
     app.register(fastifyStatic, {
@@ -38,6 +40,8 @@ export function buildApp({
 
     app.get('/book', async (_request, reply) => reply.sendFile('index.html'));
     app.get('/book/', async (_request, reply) => reply.redirect('/book'));
+    app.get('/owner', async (_request, reply) => reply.sendFile('index.html'));
+    app.get('/owner/', async (_request, reply) => reply.redirect('/owner'));
   }
 
   return app;

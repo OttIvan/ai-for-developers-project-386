@@ -27,10 +27,39 @@ model EventType {
   description: string;
 
   @minValue(1)
-  durationMinutes: integer;
+  @maxValue(2147483647)
+  durationMinutes: int32;
 }
 
 @get
 @route("/api/event-types")
 @operationId("listEventTypes")
 op listEventTypes(): EventType[];
+
+model EventTypeCreated {
+  @statusCode statusCode: 201;
+  @body body: EventType;
+}
+
+@error
+model InvalidEventTypeInput {
+  @statusCode statusCode: 400;
+  @body body: {
+    code: "INVALID_INPUT";
+    message: string;
+  };
+}
+
+@error
+model EventTypeIdTaken {
+  @statusCode statusCode: 409;
+  @body body: {
+    code: "EVENT_TYPE_ID_TAKEN";
+    message: string;
+  };
+}
+
+@post
+@route("/api/event-types")
+@operationId("createEventType")
+op createEventType(@body eventType: EventType): EventTypeCreated | InvalidEventTypeInput | EventTypeIdTaken;
