@@ -92,3 +92,48 @@ model EventTypeNotFound {
 @route("/api/event-types/{id}/slots")
 @operationId("listSlots")
 op listSlots(@path id: string): AvailabilityCalendar | EventTypeNotFound;
+
+model Booking {
+  id: string;
+  eventTypeId: string;
+  eventTypeTitle: string;
+  startAt: utcDateTime;
+  endAt: utcDateTime;
+  guestName: string;
+}
+
+model BookingRequest {
+  @pattern("^[a-z0-9]+(-[a-z0-9]+)*$")
+  eventTypeId: string;
+  startAt: utcDateTime;
+  @pattern("\\S")
+  guestName: string;
+}
+
+model BookingCreated {
+  @statusCode statusCode: 201;
+  @body body: Booking;
+}
+
+@error
+model InvalidBookingInput {
+  @statusCode statusCode: 400;
+  @body body: {
+    code: "INVALID_INPUT";
+    message: string;
+  };
+}
+
+@error
+model SlotTaken {
+  @statusCode statusCode: 409;
+  @body body: {
+    code: "SLOT_TAKEN";
+    message: string;
+  };
+}
+
+@post
+@route("/api/bookings")
+@operationId("createBooking")
+op createBooking(@body booking: BookingRequest): BookingCreated | InvalidBookingInput | EventTypeNotFound | SlotTaken;

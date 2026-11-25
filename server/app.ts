@@ -1,7 +1,8 @@
 import fastifyStatic from '@fastify/static';
 import Fastify from 'fastify';
 import { fileURLToPath } from 'node:url';
-import type { EventType } from '../frontend/src/api/generated/types.gen.ts';
+import type { Booking, EventType } from '../frontend/src/api/generated/types.gen.ts';
+import { registerCreateBooking } from './create-booking.ts';
 import { registerCreateEventType } from './create-event-type.ts';
 import { listAvailability } from './scheduling.ts';
 
@@ -20,6 +21,7 @@ export function buildApp({
 }: AppOptions = {}) {
   const app = Fastify({ logger });
   const eventTypesById = new Map(eventTypes.map((eventType) => [eventType.id, eventType]));
+  const bookings: Booking[] = [];
 
   app.get('/api/health', {
     schema: {
@@ -35,6 +37,7 @@ export function buildApp({
 
   app.get('/api/event-types', async () => Array.from(eventTypesById.values()));
   registerCreateEventType(app, eventTypesById);
+  registerCreateBooking(app, eventTypesById, bookings, now);
 
   app.get<{ Params: { id: string } }>('/api/event-types/:id/slots', async (request, reply) => {
     const eventType = eventTypesById.get(request.params.id);
@@ -45,7 +48,7 @@ export function buildApp({
       });
     }
 
-    return listAvailability(now(), eventType.durationMinutes);
+    return listAvailability(now(), eventType.durationMinutes, bookings);
   });
 
   if (serveFrontend) {
