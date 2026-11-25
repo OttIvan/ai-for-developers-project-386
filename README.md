@@ -58,6 +58,8 @@ npm ci
 | `npm test` | Сборка и дымовой тест через Vitest |
 | `npm run generate` | OpenAPI из `api/main.tsp`, затем TypeScript SDK из OpenAPI |
 
+Для подключения локального хука перед push выполните `npm run hooks:install`. Хук запускает `npm run check`.
+
 GitHub Actions запускает `npm run check` на каждый push. Для запуска готовой сборки выполните `npm run build`, затем `npm start`. Фронтенд и API будут доступны на одном порту, `3000`.
 
 ```bash

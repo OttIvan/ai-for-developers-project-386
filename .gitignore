@@ -2,3 +2,4 @@
 /dist/
 /generated/
 /frontend/src/api/generated/
+/openapi-ts-error-*.log

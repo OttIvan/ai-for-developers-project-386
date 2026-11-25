@@ -21,6 +21,7 @@
     "frontend/src",
     "tests",
     "vite.config.ts",
-    "openapi-ts.config.ts"
+    "openapi-ts.config.ts",
+    "vitest.config.ts"
   ]
 }
