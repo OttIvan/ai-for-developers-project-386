@@ -1,0 +1,46 @@
+{
+  "name": "call-calendar",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.13.0 <25"
+  },
+  "scripts": {
+    "generate": "tsp compile api && openapi-ts",
+    "predev": "npm run generate",
+    "dev": "vite",
+    "dev:api": "node --watch server/index.ts",
+    "start": "node server/index.ts --serve-frontend",
+    "prebuild": "npm run generate",
+    "build": "vite build",
+    "lint": "oxlint --deny-warnings server frontend/src tests vite.config.ts openapi-ts.config.ts vitest.config.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "npm run build && npm run lint && npm run typecheck && vitest run",
+    "pretest": "npm run build",
+    "hooks:install": "git config --local core.hooksPath .githooks"
+  },
+  "dependencies": {
+    "@fastify/static": "8.3.0",
+    "fastify": "5.8.4",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@hey-api/openapi-ts": "0.87.1",
+    "@types/node": "24.10.0",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "@typespec/compiler": "1.5.0",
+    "@typespec/http": "1.5.0",
+    "@typespec/openapi": "1.5.0",
+    "@typespec/openapi3": "1.5.0",
+    "@vitejs/plugin-react": "5.1.1",
+    "oxlint": "1.28.0",
+    "typescript": "5.9.3",
+    "vite": "7.2.2",
+    "vitest": "4.0.8"
+  },
+  "packageManager": "npm@11.19.1"
+}
