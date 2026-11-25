@@ -102,12 +102,12 @@ jobs:
     steps:
       - name: Prepare GitHub Issues for triage
         run: |
-          test "$(gh repo view --json nameWithOwner --jq .nameWithOwner)" = 'OttIvan/ai-for-developers-project-386'
-          test "$(gh repo view --json hasIssuesEnabled --jq .hasIssuesEnabled)" = 'true'
-          existing="$(gh label list --limit 1000 --json name --jq '.[].name')"
+          test "$(gh repo view "$GH_REPO" --json nameWithOwner --jq .nameWithOwner)" = 'OttIvan/ai-for-developers-project-386'
+          test "$(gh repo view "$GH_REPO" --json hasIssuesEnabled --jq .hasIssuesEnabled)" = 'true'
+          existing="$(gh label list --repo "$GH_REPO" --limit 1000 --json name --jq '.[].name')"
           ensure_label() {
             if ! grep -Fxq "$1" <<< "$existing"; then
-              gh label create "$1" --color "$2" --description "$3"
+              gh label create "$1" --repo "$GH_REPO" --color "$2" --description "$3"
             fi
           }
           ensure_label needs-triage FBCA04 'Maintainer needs to evaluate the issue'
@@ -115,7 +115,7 @@ jobs:
           ensure_label ready-for-agent 0E8A16 'Ready for an agent to implement'
           ensure_label ready-for-human 1D76DB 'Ready for a human to implement'
           ensure_label wontfix FFFFFF 'The issue will not be acted on'
-          existing="$(gh label list --limit 1000 --json name --jq '.[].name')"
+          existing="$(gh label list --repo "$GH_REPO" --limit 1000 --json name --jq '.[].name')"
           for label in needs-triage needs-info ready-for-agent ready-for-human wontfix; do
             grep -Fx "$label" <<< "$existing"
           done
