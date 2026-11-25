@@ -3,8 +3,9 @@
 Команды установки, запуска, проверок и Docker описаны в [README.md](README.md).
 
 - `server/` содержит сервер Fastify, `frontend/` содержит приложение React, `api/` содержит исходный контракт TypeSpec, `tests/` содержит дымовой тест.
-- При изменении API сначала обновите TypeSpec и выполните `npm run generate`. OpenAPI и клиентский SDK пересоздаются при сборке. Добавляйте изменения в исходный контракт.
-- Сообщения коммитов следуют Conventional Commits, например `feat: add meeting types` или `fix: reject overlapping bookings`.
+- При изменении API сначала обновите TypeSpec и выполните `npm run generate`. Генерируемые пути: `generated/` (OpenAPI) и `frontend/src/api/generated/` (SDK). Не изменяйте содержимое этих каталогов вручную и не коммитьте его. CI генерирует их из чистого состояния перед сборкой и тестами.
+- `npm run check` запускает общую проверку проекта локально и в CI.
+- Сообщения коммитов следуют Conventional Commits. Коммит реализации ссылается на тикет, например `feat: add the meeting types catalog (#9)`.
 
 ## Agent skills
 
