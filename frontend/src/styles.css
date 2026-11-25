@@ -1,30 +1,106 @@
 :root {
-  color: #172638;
-  background: #eef3f4;
+  color: #16233a;
+  background: #f0f4fb;
   font-family: system-ui, sans-serif;
+  line-height: 1.5;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
-  display: grid;
-  min-height: 100vh;
   margin: 0;
-  padding: 1.5rem;
-  box-sizing: border-box;
-  place-items: center;
+  background: radial-gradient(ellipse at 88% 3%, #dfe7ff 0%, transparent 58%), #f0f4fb;
 }
 
-main {
-  padding: 2rem;
-  border: 1px solid #d4dfe0;
-  border-radius: 1rem;
+.page {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 100vh;
+  width: min(100% - 2.5rem, 64rem);
+  margin-inline: auto;
+}
+
+.site-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 4.75rem;
+  border-bottom: 1px solid #ced8e9;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.calendar-mark {
+  position: relative;
+  width: 1.25rem;
+  height: 1.1rem;
+  border: 2px solid #334ba1;
+  border-radius: 0.25rem;
+}
+
+.calendar-mark::after {
+  position: absolute;
+  inset: 0.22rem 0 auto;
+  border-top: 2px solid #334ba1;
+  content: "";
+}
+
+.page-content {
+  align-self: center;
+  width: min(100%, 47rem);
+  margin-block: clamp(2rem, 8vw, 6rem);
+  padding: clamp(1.5rem, 6vw, 4rem);
+  border: 1px solid #d6dfed;
+  border-radius: 1.5rem;
   background: #fff;
+  box-shadow: 0 18px 45px #25395b12;
 }
 
 h1 {
+  max-width: 11ch;
   margin: 0;
-  font-size: clamp(1.75rem, 6vw, 2.5rem);
+  font-size: clamp(2rem, 7vw, 4.25rem);
+  font-weight: 760;
+  line-height: 1.03;
+  letter-spacing: -0.045em;
 }
 
 p {
-  margin-bottom: 0;
+  max-width: 36ch;
+  margin-block: 1.25rem 1.75rem;
+  color: #495971;
+  font-size: clamp(1rem, 2.5vw, 1.125rem);
+}
+
+.primary-link,
+.back-link {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  border-radius: 0.65rem;
+  font-weight: 650;
+}
+
+.primary-link {
+  justify-content: center;
+  padding: 0.75rem 1.15rem;
+  background: #344bac;
+  color: #fff;
+  text-decoration: none;
+}
+
+.primary-link:hover {
+  background: #263a91;
+}
+
+.back-link {
+  color: #263a91;
+  text-underline-offset: 0.2em;
+}
+
+a:focus-visible {
+  outline: 3px solid #334ba1;
+  outline-offset: 4px;
 }

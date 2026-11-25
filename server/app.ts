@@ -26,6 +26,9 @@ export function buildApp({ logger = false, serveFrontend = false }: AppOptions =
     app.register(fastifyStatic, {
       root: fileURLToPath(new URL('../dist/', import.meta.url)),
     });
+
+    app.get('/book', async (_request, reply) => reply.sendFile('index.html'));
+    app.get('/book/', async (_request, reply) => reply.redirect('/book'));
   }
 
   return app;
