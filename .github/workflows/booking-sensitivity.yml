@@ -1,0 +1,52 @@
+name: Booking overlap sensitivity
+
+on:
+  push:
+    branches: [test/booking-overlap-sensitivity]
+    paths: ['.github/workflows/booking-sensitivity.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  sensitivity:
+    runs-on: ubuntu-latest
+    env:
+      NO_COLOR: '1'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+      - name: Prove the HTTP test catches a partial overlap
+        run: |
+          test_file=tests/create-booking.test.ts
+          test_title='a confirmed booking excludes overlapping slots across meeting types and permits adjacency'
+          guard_file=server/create-booking.ts
+          git worktree add --detach "$RUNNER_TEMP/booking-overlap-worktree" "$GITHUB_SHA"
+          cd "$RUNNER_TEMP/booking-overlap-worktree"
+          npm ci
+          npm run generate
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from 'node:fs';
+          const file = 'server/create-booking.ts';
+          const guard = 'if (bookings.some((booking) => slotsOverlap(slot, booking))) {';
+          const source = readFileSync(file, 'utf8');
+          if (source.split(guard).length !== 2) throw new Error('Expected one overlap guard');
+          writeFileSync(file, source.replace(guard, 'if (false && bookings.some((booking) => slotsOverlap(slot, booking))) {'));
+          NODE
+          echo 'RED: npm exec -- vitest run tests/create-booking.test.ts -t "a confirmed booking excludes overlapping slots across meeting types and permits adjacency"'
+          set +e
+          npm exec -- vitest run "$test_file" -t "$test_title" > "$RUNNER_TEMP/booking-overlap-red.log" 2>&1
+          result=$?
+          set -e
+          cat "$RUNNER_TEMP/booking-overlap-red.log"
+          test "$result" -eq 1
+          grep -F 'expected 201 to be 409' "$RUNNER_TEMP/booking-overlap-red.log"
+          git restore -- "$guard_file"
+          git diff --exit-code
+          echo 'GREEN: same command with the overlap guard restored'
+          npm exec -- vitest run "$test_file" -t "$test_title"
+          npm run check
