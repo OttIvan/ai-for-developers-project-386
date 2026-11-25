@@ -63,3 +63,32 @@ model EventTypeIdTaken {
 @route("/api/event-types")
 @operationId("createEventType")
 op createEventType(@body eventType: EventType): EventTypeCreated | InvalidEventTypeInput | EventTypeIdTaken;
+
+model Slot {
+  startAt: utcDateTime;
+  endAt: utcDateTime;
+}
+
+model AvailabilityDay {
+  date: plainDate;
+  slots: Slot[];
+}
+
+model AvailabilityCalendar {
+  timezone: "Asia/Tbilisi";
+  days: AvailabilityDay[];
+}
+
+@error
+model EventTypeNotFound {
+  @statusCode statusCode: 404;
+  @body body: {
+    code: "EVENT_TYPE_NOT_FOUND";
+    message: string;
+  };
+}
+
+@get
+@route("/api/event-types/{id}/slots")
+@operationId("listSlots")
+op listSlots(@path id: string): AvailabilityCalendar | EventTypeNotFound;

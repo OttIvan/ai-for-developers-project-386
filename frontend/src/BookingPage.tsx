@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { listEventTypes } from './api/generated/sdk.gen';
 import type { EventType } from './api/generated/types.gen';
+import { AvailabilityPicker } from './AvailabilityPicker';
 
 type CatalogState =
   | { status: 'loading' }
@@ -9,6 +10,7 @@ type CatalogState =
 
 export function BookingPage() {
   const [catalog, setCatalog] = useState<CatalogState>({ status: 'loading' });
+  const [eventType, setEventType] = useState<EventType>();
 
   useEffect(() => {
     const request = new AbortController();
@@ -33,24 +35,42 @@ export function BookingPage() {
       <h1>Страница записи</h1>
       {catalog.status === 'loading' && <p role="status">Загружаем типы встреч…</p>}
       {catalog.status === 'error' && <p role="alert">Не удалось загрузить типы встреч.</p>}
-      {catalog.status === 'loaded' && <EventTypeCatalog eventTypes={catalog.eventTypes} />}
+      {catalog.status === 'loaded' && (
+        <EventTypeCatalog eventTypes={catalog.eventTypes} selectedId={eventType?.id} onSelect={setEventType} />
+      )}
+      {eventType && <AvailabilityPicker key={eventType.id} eventType={eventType} />}
       <a className="back-link" href="/">На главную</a>
     </>
   );
 }
 
-export function EventTypeCatalog({ eventTypes }: { eventTypes: readonly EventType[] }) {
+export function EventTypeCatalog({ eventTypes, selectedId, onSelect }: {
+  eventTypes: readonly EventType[];
+  selectedId?: string;
+  onSelect?: (eventType: EventType) => void;
+}) {
   if (eventTypes.length === 0) {
     return <p>Типов встреч пока нет.</p>;
   }
 
   return (
     <ul className="event-types" aria-label="Типы встреч">
-      {eventTypes.map(({ id, title, description, durationMinutes }) => (
-        <li key={id}>
-          <h2>{title}</h2>
-          <p>{description}</p>
-          <span>{durationMinutes} мин</span>
+      {eventTypes.map((eventType) => (
+        <li key={eventType.id}>
+          <h2>{eventType.title}</h2>
+          <p>{eventType.description}</p>
+          <span>{eventType.durationMinutes} мин</span>
+          {onSelect && (
+            <button
+              className="availability-choice event-type-choice"
+              type="button"
+              aria-label={`Выбрать время: ${eventType.title}`}
+              aria-pressed={selectedId === eventType.id}
+              onClick={() => onSelect(eventType)}
+            >
+              Выбрать время
+            </button>
+          )}
         </li>
       ))}
     </ul>

@@ -1,0 +1,61 @@
+.availability {
+  margin-block: 2rem;
+}
+
+.availability h2 {
+  margin-bottom: 0;
+}
+
+.availability p {
+  margin-block: 0.5rem 1rem;
+}
+
+.availability-dates,
+.availability-times {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr));
+  gap: 0.5rem;
+}
+
+.availability-times {
+  margin-top: 1rem;
+}
+
+.availability-choice {
+  min-height: 2.75rem;
+  padding-inline: 0.55rem;
+  border: 1px solid #aebcda;
+  border-radius: 0.65rem;
+  background: #fff;
+  color: #263a91;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.availability-choice:disabled {
+  border-color: #d6dfed;
+  background: #f0f4fb;
+  color: #64748b;
+  cursor: default;
+}
+
+.availability-choice:not(:disabled):hover {
+  border-color: #344bac;
+}
+
+.availability-choice[aria-pressed='true'] {
+  border-color: #344bac;
+  background: #344bac;
+  color: #fff;
+}
+
+.availability-choice:focus-visible {
+  outline: 3px solid #334ba1;
+  outline-offset: 2px;
+}
+
+.event-type-choice {
+  display: block;
+  margin-top: 0.75rem;
+}
