@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { createEventType } from './api/generated/sdk.gen';
+import { UpcomingBookings } from './UpcomingBookings';
 import './owner.css';
 
 type Submission =
@@ -12,6 +13,7 @@ export function OwnerPage() {
     <>
       <h1>Владелец календаря</h1>
       <EventTypeForm />
+      <UpcomingBookings />
       <a className="back-link" href="/">На главную</a>
     </>
   );

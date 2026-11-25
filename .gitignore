@@ -3,3 +3,5 @@
 /generated/
 /frontend/src/api/generated/
 /openapi-ts-error-*.log
+/playwright-report/
+/test-results/

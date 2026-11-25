@@ -14,10 +14,11 @@
     "start": "node server/index.ts --serve-frontend",
     "prebuild": "npm run generate",
     "build": "vite build",
-    "lint": "oxlint --deny-warnings server frontend/src tests vite.config.ts openapi-ts.config.ts vitest.config.ts",
+    "lint": "oxlint --deny-warnings server frontend/src tests vite.config.ts openapi-ts.config.ts vitest.config.ts playwright.config.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "check": "npm run build && npm run lint && npm run typecheck && vitest run",
+    "test:browser": "playwright test",
+    "check": "npm run build && npm run lint && npm run typecheck && vitest run && npm run test:browser",
     "pretest": "npm run build",
     "hooks:install": "git config --local core.hooksPath .githooks"
   },
@@ -29,6 +30,7 @@
   },
   "devDependencies": {
     "@hey-api/openapi-ts": "0.87.1",
+    "@playwright/test": "1.58.2",
     "@types/node": "24.10.0",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",

@@ -39,6 +39,13 @@ export function buildApp({
   registerCreateEventType(app, eventTypesById);
   registerCreateBooking(app, eventTypesById, bookings, now);
 
+  app.get('/api/bookings/upcoming', async () => {
+    const currentTime = now().getTime();
+    return bookings
+      .filter(({ startAt }) => Date.parse(startAt) > currentTime)
+      .sort((left, right) => Date.parse(left.startAt) - Date.parse(right.startAt));
+  });
+
   app.get<{ Params: { id: string } }>('/api/event-types/:id/slots', async (request, reply) => {
     const eventType = eventTypesById.get(request.params.id);
     if (!eventType) {

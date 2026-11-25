@@ -36,7 +36,7 @@
 - Node.js, TypeScript и Fastify для API.
 - React и Vite для фронтенда.
 - TypeSpec, OpenAPI и Hey API для генерации клиентского SDK.
-- Oxlint, TypeScript и Vitest для проверок.
+- Oxlint, TypeScript, Vitest и Playwright для проверок.
 
 ## Установка и запуск
 
@@ -50,15 +50,18 @@ npm ci
 
 В двух терминалах запустите `npm run dev:api` и `npm run dev`. Фронтенд открывается по адресу <http://127.0.0.1:5173>, API отвечает на <http://127.0.0.1:3000/api/health>. Vite проксирует запросы фронтенда к API.
 
-Главная открывается по `/` и ведёт на страницу записи `/book`. Типы встреч создаются на странице владельца `/owner`.
+Главная открывается по `/` и ведёт на страницу записи `/book`. На странице владельца `/owner` можно создавать типы встреч и просматривать предстоящие записи.
 
 ## Проверки
 
+После `npm ci` установите Chromium командой `npx playwright install chromium`. В Linux для установки системных зависимостей используйте `npx playwright install --with-deps chromium`.
+
 | Команда | Что запускает |
 | --- | --- |
-| `npm run check` | Генерация API, сборка фронтенда, линтер, проверка типов и тесты |
+| `npm run check` | Генерация API, сборка фронтенда, линтер, проверка типов, HTTP-тесты и браузерные тесты |
 | `npm run lint` | Oxlint |
 | `npm test` | Сборка и тесты через Vitest |
+| `npm run test:browser` | Браузерный тест в Chromium с готовой сборкой (`npm run build`) |
 | `npm run generate` | OpenAPI из `api/main.tsp`, затем TypeScript SDK из OpenAPI |
 
 Для подключения локального хука перед push выполните `npm run hooks:install`. Хук запускает `npm run check`.

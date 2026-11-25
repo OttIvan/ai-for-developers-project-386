@@ -8,6 +8,7 @@ const eventTypes: EventType[] = [
   { id: 'consultation', title: 'Консультация', description: 'Разговор о вашей задаче.', durationMinutes: 60 },
 ];
 const bookingsPath = '/api/bookings';
+const upcomingPath = '/api/bookings/upcoming';
 const slotsPath = '/api/event-types/{id}/slots';
 const booking = {
   eventTypeId: 'consultation',
@@ -24,6 +25,41 @@ function submitBooking(address: string, body: unknown) {
     body: JSON.stringify(body),
   });
 }
+
+async function listUpcomingBookings(address: string) {
+  return expectOpenApiResponse(await fetch(new URL(upcomingPath, address)), upcomingPath, 'get', 200);
+}
+
+test('the upcoming bookings list is empty before any booking is confirmed', async () => {
+  const app = buildBookingApp();
+  try {
+    const address = await app.listen({ host: '127.0.0.1', port: 0 });
+    expect(await listUpcomingBookings(address)).toEqual([]);
+  } finally {
+    await app.close();
+  }
+});
+
+test('the upcoming list orders all meeting types by start time and drops bookings that have started', async () => {
+  let now = new Date('2026-11-25T21:00:00Z');
+  const app = buildApp({ eventTypes, now: () => now });
+  try {
+    const address = await app.listen({ host: '127.0.0.1', port: 0 });
+    const later = await expectOpenApiResponse(await submitBooking(address, {
+      ...booking,
+      eventTypeId: 'introduction',
+      startAt: '2026-11-27T07:00:00Z',
+      guestName: 'Борис',
+    }), bookingsPath, 'post', 201);
+    const earlier = await expectOpenApiResponse(await submitBooking(address, booking), bookingsPath, 'post', 201);
+    expect(await listUpcomingBookings(address)).toEqual([earlier, later]);
+
+    now = new Date('2026-11-27T06:15:00Z');
+    expect(await listUpcomingBookings(address)).toEqual([later]);
+  } finally {
+    await app.close();
+  }
+});
 
 test('a confirmed booking excludes overlapping slots across meeting types and permits adjacency', async () => {
   const app = buildBookingApp();
@@ -84,8 +120,9 @@ test('two concurrent overlapping requests produce one confirmation and one confl
     ]);
     const [confirmed, conflict] = responses.sort((left, right) => left.status - right.status);
 
-    await expectOpenApiResponse(confirmed, bookingsPath, 'post', 201);
+    const winner = await expectOpenApiResponse(confirmed, bookingsPath, 'post', 201);
     expect(await expectOpenApiResponse(conflict, bookingsPath, 'post', 409)).toMatchObject({ code: 'SLOT_TAKEN' });
+    expect(await listUpcomingBookings(address)).toEqual([winner]);
   } finally {
     await app.close();
   }

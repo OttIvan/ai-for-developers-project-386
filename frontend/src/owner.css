@@ -3,11 +3,13 @@
   text-align: end;
 }
 
-.event-type-form {
+.event-type-form,
+.upcoming-bookings {
   margin-block: 1.5rem;
 }
 
-.event-type-form h2 {
+.event-type-form h2,
+.upcoming-bookings h2 {
   margin: 0 0 0.75rem;
   font-size: 1.25rem;
 }
@@ -61,6 +63,24 @@
   outline-offset: 2px;
 }
 
-.event-type-form [role="alert"] {
+.event-type-form [role="alert"],
+.upcoming-bookings [role="alert"] {
   color: #a02424;
+}
+
+.upcoming-bookings ul {
+  display: grid;
+  gap: 0.75rem;
+  margin-block: 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.upcoming-bookings li {
+  display: grid;
+  gap: 0.25rem;
+  padding: 1rem;
+  border: 1px solid #d6dfed;
+  border-radius: 0.85rem;
+  overflow-wrap: anywhere;
 }

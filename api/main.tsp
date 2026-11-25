@@ -137,3 +137,8 @@ model SlotTaken {
 @route("/api/bookings")
 @operationId("createBooking")
 op createBooking(@body booking: BookingRequest): BookingCreated | InvalidBookingInput | EventTypeNotFound | SlotTaken;
+
+@get
+@route("/api/bookings/upcoming")
+@operationId("listUpcomingBookings")
+op listUpcomingBookings(): Booking[];

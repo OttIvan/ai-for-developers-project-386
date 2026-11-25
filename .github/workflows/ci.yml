@@ -20,4 +20,8 @@ jobs:
           node-version-file: .node-version
           cache: npm
       - run: npm ci
+      - if: runner.os == 'Linux'
+        run: npx playwright install --with-deps chromium
+      - if: runner.os == 'Windows'
+        run: npx playwright install chromium
       - run: npm run check
