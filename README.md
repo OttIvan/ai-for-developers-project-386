@@ -32,20 +32,38 @@
 
 ## Стек
 
-- Разное
+- Node.js, TypeScript и Fastify для API.
+- React и Vite для фронтенда.
+- TypeSpec, OpenAPI и Hey API для генерации клиентского SDK.
+- Oxlint, TypeScript и Vitest для проверок.
 
-## Установка
+## Установка и запуск
 
-<!-- Опишите установку: клонирование, зависимости, переменные окружения -->
+Установите Node.js версии из `.node-version` и выполните:
 
 ```bash
 git clone https://github.com/OttIvan/ai-for-developers-project-386.git
 cd ai-for-developers-project-386
+npm ci
 ```
 
-## Использование
+В двух терминалах запустите `npm run dev:api` и `npm run dev`. Фронтенд открывается по адресу <http://127.0.0.1:5173>, API отвечает на <http://127.0.0.1:3000/api/health>. Vite проксирует запросы фронтенда к API.
 
-<!-- Добавьте примеры запуска и запись asciinema — именно это смотрит работодатель -->
+## Проверки
+
+| Команда | Что запускает |
+| --- | --- |
+| `npm run check` | Генерация API, сборка фронтенда, линтер, проверка типов и дымовой тест |
+| `npm run lint` | Oxlint |
+| `npm test` | Сборка и дымовой тест через Vitest |
+| `npm run generate` | OpenAPI из `api/main.tsp`, затем TypeScript SDK из OpenAPI |
+
+GitHub Actions запускает `npm run check` на каждый push. Для запуска готовой сборки выполните `npm run build`, затем `npm start`. Фронтенд и API будут доступны на одном порту, `3000`.
+
+```bash
+docker build -t call-calendar .
+docker run --rm -p 127.0.0.1:3000:3000 call-calendar
+```
 
 ---
 
