@@ -1,0 +1,55 @@
+name: Link booking implementation tickets
+
+on:
+  push:
+    branches: [chore/booking-spec-links]
+    paths: ['.github/workflows/link-booking-spec.yml']
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  link:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Attach tickets and verify native blockers
+        run: |
+          test "$GH_REPO" = 'OttIvan/ai-for-developers-project-386'
+          root="repos/$GH_REPO/issues"
+          subissues="$root/8/sub_issues"
+          attach() {
+            if ! gh api "$subissues" --paginate --jq '.[].id' | grep -Fx "$1" >/dev/null; then
+              gh api --method POST "$subissues" -F sub_issue_id="$1" --silent
+            fi
+          }
+          block() {
+            local endpoint="$root/$1/dependencies/blocked_by"
+            if ! gh api "$endpoint" --paginate --jq '.[].id' | grep -Fx "$2" >/dev/null; then
+              gh api --method POST "$endpoint" -F issue_id="$2" --silent
+            fi
+            gh api "$endpoint" --paginate --jq '.[].id' | grep -Fx "$2"
+          }
+          attach 6611989186
+          attach 6611990704
+          attach 6611992075
+          attach 6611993360
+          attach 6611994867
+          attach 6611996247
+          block 10 6611989186
+          block 11 6611989186
+          block 12 6611992075
+          block 13 6611990704
+          block 13 6611993360
+          block 14 6611989186
+          test "$(gh api "$subissues" --paginate --jq '.[].id' | wc -l)" -eq 6
+          test "$(gh api "$root/9/dependencies/blocked_by" --paginate --jq '.[].id' | wc -l)" -eq 0
+          test "$(gh api "$root/10/dependencies/blocked_by" --paginate --jq '.[].id' | wc -l)" -eq 1
+          test "$(gh api "$root/11/dependencies/blocked_by" --paginate --jq '.[].id' | wc -l)" -eq 1
+          test "$(gh api "$root/12/dependencies/blocked_by" --paginate --jq '.[].id' | wc -l)" -eq 1
+          test "$(gh api "$root/13/dependencies/blocked_by" --paginate --jq '.[].id' | wc -l)" -eq 2
+          test "$(gh api "$root/14/dependencies/blocked_by" --paginate --jq '.[].id' | wc -l)" -eq 1
+          gh api "$subissues" --paginate --jq '.[] | "\(.number) \(.title)"'
