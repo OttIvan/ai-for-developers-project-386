@@ -104,3 +104,32 @@ a:focus-visible {
   outline: 3px solid #334ba1;
   outline-offset: 4px;
 }
+
+.event-types {
+  display: grid;
+  gap: 1rem;
+  margin-block: 1.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.event-types li {
+  padding: 1.25rem;
+  border: 1px solid #d6dfed;
+  border-radius: 0.85rem;
+}
+
+.event-types h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.event-types p {
+  max-width: none;
+  margin-block: 0.35rem 0.65rem;
+}
+
+.event-types span {
+  color: #263a91;
+  font-weight: 650;
+}

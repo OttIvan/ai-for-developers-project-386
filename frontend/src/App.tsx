@@ -1,3 +1,5 @@
+import { BookingPage } from './BookingPage';
+
 export function App({ pathname }: { pathname: string }) {
   const isBookingPage = pathname === '/book' || pathname === '/book/';
 
@@ -9,11 +11,7 @@ export function App({ pathname }: { pathname: string }) {
       </header>
       <main className="page-content">
         {isBookingPage ? (
-          <>
-            <h1>Страница записи</h1>
-            <p>Запись пока недоступна.</p>
-            <a className="back-link" href="/">На главную</a>
-          </>
+          <BookingPage />
         ) : (
           <>
             <h1>Запишитесь на звонок</h1>
