@@ -1,0 +1,121 @@
+name: Verify agent skills setup
+
+on:
+  push:
+    branches: [chore/agent-skills]
+    paths: ['.github/workflows/verify-agent-skills.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  discovery:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+      - name: Run official skills installer in a clean project directory
+        env:
+          DISABLE_TELEMETRY: '1'
+        run: |
+          cd "$(mktemp -d)"
+          git init -q
+          npx --yes skills@latest add mattpocock/skills --agent codex --skill ask-matt code-review codebase-design diagnosing-bugs domain-modeling grill-with-docs implement-spec implement improve-codebase-architecture pr prototype research retro setup-matt-pocock-skills tdd to-spec to-tickets triage wayfinder wizard grill-me grilling handoff teach to-questionnaire wait-what writing-for-agents --yes
+          test -f .agents/skills/setup-matt-pocock-skills/SKILL.md
+          test -f .agents/skills/implement-spec/SKILL.md
+      - name: Verify skills discovery from the repository in a fresh Codex process
+        run: |
+          npm install --prefix "$RUNNER_TEMP/codex-check" --no-save @openai/codex@latest
+          export CODEX_CHECK_BIN="$RUNNER_TEMP/codex-check/node_modules/.bin/codex"
+          node --input-type=module <<'NODE'
+          import { spawn } from 'node:child_process';
+          import { once } from 'node:events';
+          import { createInterface } from 'node:readline';
+          import { readFileSync } from 'node:fs';
+          import assert from 'node:assert/strict';
+
+          const cwd = process.cwd();
+          const proc = spawn(process.env.CODEX_CHECK_BIN, ['app-server'], {
+            cwd,
+            stdio: ['pipe', 'pipe', 'inherit'],
+          });
+          const closed = once(proc, 'close');
+          const lines = createInterface({ input: proc.stdout });
+          let found = false;
+          const timeout = setTimeout(() => {
+            console.error('Codex skill discovery timed out');
+            process.exit(1);
+          }, 30000);
+          const send = (message) => proc.stdin.write(JSON.stringify({ jsonrpc: '2.0', ...message }) + '\n');
+          try {
+            send({ id: 1, method: 'initialize', params: { clientInfo: { name: 'calendar-skills-check', version: '1.0.0' } } });
+            for await (const line of lines) {
+              const response = JSON.parse(line);
+              if (response.id === 1) {
+                assert.ok(response.result, JSON.stringify(response));
+                send({ method: 'initialized' });
+                send({ id: 2, method: 'skills/list', params: { cwds: [cwd], forceReload: true } });
+              } else if (response.id === 2) {
+                const result = response.result?.data?.[0];
+                assert.ok(result, JSON.stringify(response));
+                const skills = result.skills.filter((skill) => skill.enabled && skill.path?.startsWith(cwd + '/.agents/skills/'));
+                for (const name of ["ask-matt","code-review","codebase-design","diagnosing-bugs","domain-modeling","grill-with-docs","implement-spec","implement","improve-codebase-architecture","pr","prototype","research","retro","setup-matt-pocock-skills","tdd","to-spec","to-tickets","triage","wayfinder","wizard","grill-me","grilling","handoff","teach","to-questionnaire","wait-what","writing-for-agents"]) {
+                  assert.ok(skills.some((skill) => skill.name === name), 'Missing project skill: ' + name);
+                }
+                console.log('Codex discovered project skills:', skills.map((skill) => skill.name).sort().join(', '));
+                const agents = readFileSync('AGENTS.md', 'utf8');
+                const tracker = readFileSync('docs/agents/issue-tracker.md', 'utf8');
+                const domain = readFileSync('docs/agents/domain.md', 'utf8');
+                const docs = readFileSync('README.md', 'utf8');
+                const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+                assert.match(agents, /docs\/agents\/issue-tracker\.md/);
+                assert.match(tracker, /https:\/\/github\.com\/OttIvan\/ai-for-developers-project-386\/issues/);
+                assert.ok(domain.includes('GLOSSARY.md') && domain.includes('docs/adr/'));
+                assert.ok(pkg.scripts.check && docs.includes('npm run check'));
+                console.log('Tracker: https://github.com/OttIvan/ai-for-developers-project-386/issues');
+                console.log('Checks: npm run check');
+                found = true;
+                break;
+              }
+            }
+            assert.ok(found, 'Codex exited before returning project skills');
+          } finally {
+            clearTimeout(timeout);
+            lines.close();
+            proc.kill();
+            await closed;
+          }
+          NODE
+
+  configure-labels:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Prepare GitHub Issues for triage
+        run: |
+          test "$(gh repo view --json nameWithOwner --jq .nameWithOwner)" = 'OttIvan/ai-for-developers-project-386'
+          test "$(gh repo view --json hasIssuesEnabled --jq .hasIssuesEnabled)" = 'true'
+          existing="$(gh label list --limit 1000 --json name --jq '.[].name')"
+          ensure_label() {
+            if ! grep -Fxq "$1" <<< "$existing"; then
+              gh label create "$1" --color "$2" --description "$3"
+            fi
+          }
+          ensure_label needs-triage FBCA04 'Maintainer needs to evaluate the issue'
+          ensure_label needs-info D876E3 'Waiting for more information'
+          ensure_label ready-for-agent 0E8A16 'Ready for an agent to implement'
+          ensure_label ready-for-human 1D76DB 'Ready for a human to implement'
+          ensure_label wontfix FFFFFF 'The issue will not be acted on'
+          existing="$(gh label list --limit 1000 --json name --jq '.[].name')"
+          for label in needs-triage needs-info ready-for-agent ready-for-human wontfix; do
+            grep -Fx "$label" <<< "$existing"
+          done
