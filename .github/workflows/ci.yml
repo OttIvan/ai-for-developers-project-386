@@ -26,6 +26,6 @@ jobs:
         run: |
           docker build -t call-calendar .
           docker run --rm -d --name call-calendar -p 127.0.0.1:3000:3000 call-calendar
-          trap 'docker logs call-calendar; docker stop call-calendar' EXIT
-          curl --fail --retry 10 --retry-connrefused http://127.0.0.1:3000/api/health | grep -F '{"status":"ok"}'
+          trap 'docker logs call-calendar; docker stop --time 2 call-calendar' EXIT
+          curl --fail --silent --show-error --retry 12 --retry-all-errors --retry-delay 1 --max-time 3 http://127.0.0.1:3000/api/health | grep -F '{"status":"ok"}'
           curl --fail http://127.0.0.1:3000/ | grep -F '<title>Календарь звонков</title>'
