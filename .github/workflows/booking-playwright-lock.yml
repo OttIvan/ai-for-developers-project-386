@@ -1,0 +1,32 @@
+name: Resolve Playwright lock entries
+
+on:
+  push:
+    branches: [chore/booking-playwright-lock]
+    paths: ['.github/workflows/booking-playwright-lock.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+      - run: |
+          cp package-lock.json /tmp/booking-before-lock.json
+          npm install --package-lock-only --ignore-scripts --save-dev --save-exact @playwright/test@1.58.2
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const before = JSON.parse(readFileSync('/tmp/booking-before-lock.json')).packages;
+          const after = JSON.parse(readFileSync('package-lock.json')).packages;
+          const entries = Object.fromEntries(Object.entries(after).filter(([key, value]) => key && JSON.stringify(value) !== JSON.stringify(before[key])));
+          const removed = Object.keys(before).filter(key => !(key in after));
+          const delta = Buffer.from(JSON.stringify({ entries, removed })).toString('base64');
+          for (const piece of delta.match(/.{1,100}/g)) console.log('BOOKLOCK:' + piece);
+          NODE
