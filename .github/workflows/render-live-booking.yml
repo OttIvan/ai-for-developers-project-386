@@ -1,0 +1,88 @@
+name: Public Render booking verification
+on:
+  push:
+    branches: [test/render-live-booking]
+    paths: ['.github/workflows/render-live-booking.yml']
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Verify live guest and owner flows
+        run: |
+          cat > tests/render-live.spec.ts <<'PLAYWRIGHT'
+          import { test, expect } from '@playwright/test';
+          import type { Page } from '@playwright/test';
+          
+          const app = 'https://call-calendar-ottivan.onrender.com';
+          const runId = process.env.GITHUB_RUN_ID ?? 'manual';
+          const longTitle = 'Проверка Render: 60 минут ' + runId;
+          const shortTitle = 'Проверка Render: 30 минут ' + runId;
+          
+          async function createType(owner: Page, id: string, title: string, duration: string) {
+            await owner.getByLabel('ID', { exact: true }).fill(id);
+            await owner.getByLabel('Название').fill(title);
+            await owner.getByLabel('Описание').fill('Тестовый тип для проверки публичного деплоя.');
+            await owner.getByLabel('Длительность (мин)').fill(duration);
+            await owner.getByRole('button', { name: 'Создать тип встречи' }).click();
+            await expect(owner.getByText('Тип встречи создан.', { exact: true })).toBeVisible();
+          }
+          
+          test('public Render booking succeeds and rejects a partial overlap of another type', async ({ page: owner, context, request }) => {
+            test.setTimeout(120_000);
+            const response = await request.get(app + '/api/health', { timeout: 90_000 });
+            expect(response.status()).toBe(200);
+            expect(await response.json()).toEqual({ status: 'ok' });
+          
+            await owner.goto(app + '/owner', { timeout: 90_000 });
+            await createType(owner, 'probe-long-' + runId, longTitle, '60');
+            await createType(owner, 'probe-short-' + runId, shortTitle, '30');
+          
+            const guest = await context.newPage();
+            await guest.goto(app);
+            await guest.getByRole('link', { name: 'Записаться на звонок' }).click();
+            await guest.getByRole('button', { name: 'Выбрать время: ' + longTitle }).click();
+            const day = guest.getByRole('group', { name: 'Даты' }).locator('button:enabled').first();
+            await day.click();
+            const date = await day.locator('time').getAttribute('datetime');
+            expect(date).not.toBeNull();
+            await guest.getByRole('button', { name: '10:00', exact: true }).click();
+            await guest.getByLabel('Ваше имя').fill('Тест Render');
+          
+            const other = await context.newPage();
+            await other.goto(app + '/book');
+            await other.getByRole('button', { name: 'Выбрать время: ' + shortTitle }).click();
+            await other.getByRole('group', { name: 'Даты' }).locator('button').filter({ has: other.locator('time[datetime="' + date + '"]') }).click();
+            await other.getByRole('button', { name: '10:30', exact: true }).click();
+            await other.getByLabel('Ваше имя').fill('Тест пересечения');
+          
+            await guest.getByRole('button', { name: 'Записаться', exact: true }).click();
+            await expect(guest.getByRole('heading', { name: 'Запись подтверждена' })).toBeVisible();
+            await expect(guest.getByRole('status')).toContainText('10:00–11:00 (Asia/Tbilisi)');
+          
+            const responsePromise = other.waitForResponse(response => response.url() === app + '/api/bookings' && response.request().method() === 'POST');
+            await other.getByRole('button', { name: 'Записаться', exact: true }).click();
+            const conflict = await responsePromise;
+            expect(conflict.status()).toBe(409);
+            expect(await conflict.json()).toMatchObject({ code: 'SLOT_TAKEN' });
+            await expect(other.getByRole('alert')).toHaveText('Это время уже занято. Выберите другой слот');
+          
+            await owner.reload();
+            const upcoming = owner.getByRole('region', { name: 'Предстоящие записи' });
+            const saved = upcoming.getByRole('listitem').filter({ hasText: longTitle });
+            await expect(saved).toContainText('Тест Render');
+            await expect(saved).toContainText('10:00–11:00');
+            await expect(upcoming.getByRole('listitem').filter({ hasText: shortTitle })).toHaveCount(0);
+          });
+          PLAYWRIGHT
+          npm exec -- playwright test tests/render-live.spec.ts
