@@ -1,0 +1,5 @@
+# Copy only this server block into a trusted project's .codex/config.toml
+# or into your user Codex configuration.
+[mcp_servers.render]
+url = "https://mcp.render.com/mcp"
+bearer_token_env_var = "RENDER_API_KEY"

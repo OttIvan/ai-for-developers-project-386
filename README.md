@@ -70,8 +70,24 @@ GitHub Actions запускает `npm run check` на каждый push. Для
 
 ```bash
 docker build -t call-calendar .
-docker run --rm -p 127.0.0.1:3000:3000 call-calendar
+docker run --rm -e PORT=8080 -p 127.0.0.1:8080:8080 call-calendar
 ```
+
+В контейнере сервер слушает `0.0.0.0` и берёт порт из `PORT`. Для команды выше проверка доступна на <http://127.0.0.1:8080/api/health>.
+
+## Деплой на Render
+
+[Конфигурация Render](render.yaml) описывает один бесплатный Docker Web Service. Render передаёт приложению `PORT` и проверяет `/api/health`. База данных не нужна. Типы встреч и записи хранятся в памяти и сбрасываются при перезапуске процесса.
+
+### Подключение Render MCP к Codex
+
+Для входа через браузер добавьте сервер и завершите авторизацию в Render:
+
+```bash
+codex mcp add render --url https://mcp.render.com/mcp --oauth-client-id codex
+```
+
+Для доступа по API-ключу используйте [шаблон Codex](.codex/config.toml.example). Скопируйте блок сервера в конфигурацию Codex и задайте `RENDER_API_KEY` в окружении, из которого запускается Codex. Ключ и данные сеанса OAuth храните вне Git. После подключения укажите нужный workspace Render. [Документация Render MCP](https://render.com/docs/mcp-server)
 
 ---
 

@@ -4,3 +4,6 @@ generated
 frontend/src/api/generated
 .git
 .github
+.env
+.env.*
+.codex

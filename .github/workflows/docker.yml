@@ -1,0 +1,49 @@
+name: Docker
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  container:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Scan Git history for secrets
+        run: |
+          docker run --rm -v "$PWD:/repo:ro" \
+            -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0=/repo \
+            ghcr.io/gitleaks/gitleaks:v8.24.2 git --redact --log-opts="--all" /repo
+      - name: Build image
+        run: docker build -t call-calendar .
+      - name: Verify startup on supplied PORT with no external network
+        run: |
+          container="$(docker run -d --network none -e PORT=18080 call-calendar)"
+          trap 'docker logs "$container"; docker rm -f "$container" >/dev/null' EXIT
+          docker exec "$container" node --input-type=module -e '
+            const base = "http://127.0.0.1:18080";
+            const { setTimeout: wait } = await import("node:timers/promises");
+            let ready = false;
+            for (let attempt = 0; attempt < 30 && !ready; attempt++) {
+              try {
+                const response = await fetch(base + "/api/health", { signal: AbortSignal.timeout(1000) });
+                ready = response.ok && (await response.json()).status === "ok";
+              } catch {}
+              if (!ready) await wait(1000);
+            }
+            if (!ready) throw new Error("Server did not start on PORT=18080");
+            for (const path of ["/", "/book", "/owner", "/api/event-types"]) {
+              const response = await fetch(base + path);
+              if (!response.ok) throw new Error(path + " returned " + response.status);
+              if (path === "/api/event-types" && (await response.json()).length !== 0) {
+                throw new Error("Expected an empty in-memory catalog");
+              }
+            }
+            console.log("Container serves the app and API on PORT=18080 without external network");
+          '
