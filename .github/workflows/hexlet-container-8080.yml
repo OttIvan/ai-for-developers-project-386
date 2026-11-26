@@ -1,0 +1,29 @@
+name: Reproduce Hexlet Docker check
+on:
+  push:
+    branches: [test/hexlet-container-8080]
+    paths: ['.github/workflows/hexlet-container-8080.yml']
+permissions:
+  contents: read
+jobs:
+  port-8080:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          ref: 679f883109555ce9a0c24c36c65e22e7c38adbd3
+      - run: docker build --tag call-calendar-review --file Dockerfile .
+      - name: Start via Dockerfile and require HTTP 200 on port 8080
+        run: |
+          container="$(docker run --detach -e PORT=8080 -p 127.0.0.1:8080:8080 call-calendar-review)"
+          trap 'docker logs "$container"; docker rm -f "$container" >/dev/null' EXIT
+          status=000
+          for attempt in $(seq 1 30); do
+            status="$(curl --silent --max-time 2 --output /tmp/call-calendar-home.html --write-out '%{http_code}' http://127.0.0.1:8080/ || true)"
+            [ "$status" = 200 ] && break
+            sleep 1
+          done
+          echo "GET / on PORT=8080 returned HTTP $status"
+          test "$status" = 200
+          grep -F '<title>Календарь звонков</title>' /tmp/call-calendar-home.html
