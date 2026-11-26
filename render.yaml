@@ -3,6 +3,10 @@ services:
     name: call-calendar-ottivan
     runtime: docker
     plan: free
+    region: frankfurt
     branch: main
     dockerfilePath: ./Dockerfile
     healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: "10000"

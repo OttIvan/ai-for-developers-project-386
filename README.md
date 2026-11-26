@@ -77,7 +77,12 @@ docker run --rm -e PORT=8080 -p 127.0.0.1:8080:8080 call-calendar
 
 ## Деплой на Render
 
-[Конфигурация Render](render.yaml) описывает один бесплатный Docker Web Service. Render передаёт приложению `PORT` и проверяет `/api/health`. База данных не нужна. Типы встреч и записи хранятся в памяти и сбрасываются при перезапуске процесса.
+- [Календарь звонков](https://call-calendar-ottivan.onrender.com)
+- [Страница владельца](https://call-calendar-ottivan.onrender.com/owner)
+
+Бесплатный Docker Web Service собирается из `Dockerfile` в ветке `main`. Приложение слушает `PORT=10000`, проверка приложения доступна по [`/api/health`](https://call-calendar-ottivan.onrender.com/api/health). Типы встреч и записи хранятся в памяти и сбрасываются при перезапуске процесса.
+
+[Шаблон Render](render.yaml) воспроизводит настройки сервиса, включая HTTP-проверку `/api/health` при деплое через Blueprint.
 
 ### Подключение Render MCP к Codex
 
