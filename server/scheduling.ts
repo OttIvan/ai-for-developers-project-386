@@ -55,15 +55,15 @@ export function listAvailability(
   durationMinutes: number,
   occupied: readonly Slot[] = [],
 ): AvailabilityCalendar {
-  return {
-    timezone,
-    days: windowDates(now).map((date) => ({
-      date,
-      slots: scheduledSlots(date, durationMinutes).filter(
-        (slot) => !occupied.some((reservation) => slotsOverlap(slot, reservation)),
-      ),
-    })),
-  };
+  // windowDates always supplies one entry for each of the 14 calendar days.
+  const days = windowDates(now).map((date) => ({
+    date,
+    slots: scheduledSlots(date, durationMinutes).filter(
+      (slot) => !occupied.some((reservation) => slotsOverlap(slot, reservation)),
+    ),
+  })) as AvailabilityCalendar['days'];
+
+  return { timezone, days };
 }
 
 export function findScheduledSlot(now: Date, durationMinutes: number, startAt: string): Slot | undefined {
