@@ -16,9 +16,11 @@ model Health {
 @operationId("getHealth")
 op getHealth(): Health;
 
+@pattern("^[a-z0-9]+(-[a-z0-9]+)*$")
+scalar EventTypeId extends string;
+
 model EventType {
-  @pattern("^[a-z0-9]+(-[a-z0-9]+)*$")
-  id: string;
+  id: EventTypeId;
 
   @pattern("\\S")
   title: string;
@@ -27,8 +29,8 @@ model EventType {
   description: string;
 
   @minValue(1)
-  @maxValue(2147483647)
-  durationMinutes: int32;
+  @maxValue(9007199254740991)
+  durationMinutes: safeint;
 }
 
 @get
@@ -76,6 +78,8 @@ model AvailabilityDay {
 
 model AvailabilityCalendar {
   timezone: "Asia/Tbilisi";
+  @minItems(14)
+  @maxItems(14)
   days: AvailabilityDay[];
 }
 
@@ -103,8 +107,7 @@ model Booking {
 }
 
 model BookingRequest {
-  @pattern("^[a-z0-9]+(-[a-z0-9]+)*$")
-  eventTypeId: string;
+  eventTypeId: EventTypeId;
   startAt: utcDateTime;
   @pattern("\\S")
   guestName: string;

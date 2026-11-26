@@ -1,11 +1,17 @@
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import type { Booking, BookingRequest, EventType } from '../frontend/src/api/generated/types.gen.ts';
+import { isEventTypeId } from './event-type-id.ts';
 import { findScheduledSlot, slotsOverlap } from './scheduling.ts';
 
 const invalidInput = {
   code: 'INVALID_INPUT',
   message: 'Проверьте тип встречи, время и имя гостя.',
+};
+
+const slotTaken = {
+  code: 'SLOT_TAKEN',
+  message: 'Это время уже занято. Выберите другой слот',
 };
 
 // The grid starts on whole minutes. A nonzero fraction must not be rounded by Date.parse.
@@ -18,7 +24,7 @@ function parseBookingRequest(body: unknown): BookingRequest | undefined {
 
   const { eventTypeId, guestName, startAt } = body as Record<string, unknown>;
   if (
-    typeof eventTypeId !== 'string' || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(eventTypeId)
+    !isEventTypeId(eventTypeId)
     || typeof guestName !== 'string' || !guestName.trim()
     || typeof startAt !== 'string'
   ) {
@@ -67,15 +73,21 @@ export function registerCreateBooking(
 
     const slot = findScheduledSlot(now(), eventType.durationMinutes, input.startAt);
     if (!slot) {
+      const start = Date.parse(input.startAt);
+      const repeated = bookings.some((booking) =>
+        booking.eventTypeId === input.eventTypeId
+        && Date.parse(booking.startAt) === start
+        && booking.guestName === input.guestName,
+      );
+      if (repeated) {
+        return reply.code(409).send(slotTaken);
+      }
       return reply.code(400).send(invalidInput);
     }
 
     // Keep the overlap check and insertion synchronous within this process.
     if (bookings.some((booking) => slotsOverlap(slot, booking))) {
-      return reply.code(409).send({
-        code: 'SLOT_TAKEN',
-        message: 'Это время уже занято. Выберите другой слот',
-      });
+      return reply.code(409).send(slotTaken);
     }
 
     const booking: Booking = {

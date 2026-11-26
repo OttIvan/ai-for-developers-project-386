@@ -64,7 +64,7 @@ test('invalid fields and malformed JSON return INVALID_INPUT and leave the catal
       { ...introduction, description: '' },
       { ...introduction, durationMinutes: 0 },
       { ...introduction, durationMinutes: 2.5 },
-      { ...introduction, durationMinutes: 2_147_483_648 },
+      { ...introduction, durationMinutes: Number.MAX_SAFE_INTEGER + 1 },
       { ...introduction, durationMinutes: '30' },
     ]) {
       const response = await createEventType(url, body);
@@ -83,6 +83,17 @@ test('invalid fields and malformed JSON return INVALID_INPUT and leave the catal
       code: 'INVALID_INPUT',
     });
     expect(await expectOpenApiResponse(await fetch(url), path, 'get', 200)).toEqual([]);
+  } finally {
+    await app.close();
+  }
+});
+
+test('the API accepts a positive safe integer duration larger than int32', async () => {
+  const app = buildApp();
+  try {
+    const url = new URL(path, await app.listen({ host: '127.0.0.1', port: 0 }));
+    const eventType = { ...introduction, durationMinutes: 2_147_483_648 };
+    expect(await expectOpenApiResponse(await createEventType(url, eventType), path, 'post', 201)).toEqual(eventType);
   } finally {
     await app.close();
   }

@@ -68,3 +68,37 @@ test('the owner sees a guest booking and a second guest can recover from a stale
     await app.close();
   }
 });
+
+test('an open calendar advances at Tbilisi midnight and preserves the guest name', async ({ page }) => {
+  const beforeMidnight = new Date('2026-11-25T19:59:00Z');
+  let now = beforeMidnight;
+  const app = buildApp({
+    serveFrontend: true,
+    now: () => now,
+    eventTypes: [
+      { id: 'introduction', title: 'Знакомство', description: 'Короткий звонок.', durationMinutes: 30 },
+    ],
+  });
+  try {
+    const address = await app.listen({ host: '127.0.0.1', port: 0 });
+    await page.clock.install({ time: new Date('2026-11-25T19:58:00Z') });
+    await page.clock.pauseAt(beforeMidnight);
+    await page.goto(new URL('/book', address).href);
+    await page.getByRole('button', { name: 'Выбрать время: Знакомство' }).click();
+
+    const dates = page.getByRole('group', { name: 'Даты' });
+    const oldDate = dates.getByRole('button', { name: /26 нояб/ });
+    await oldDate.click();
+    await page.getByRole('button', { name: '10:00', exact: true }).click();
+    await page.getByLabel('Ваше имя').fill('Анна');
+
+    now = new Date('2026-11-25T20:00:00Z');
+    await page.clock.fastForward(60_000);
+    await expect(dates.getByRole('button').first()).toHaveText(/27 нояб/);
+    await expect(oldDate).toHaveCount(0);
+    await expect(page.getByLabel('Ваше имя')).toHaveValue('Анна');
+    await expect(page.getByRole('button', { name: 'Записаться', exact: true })).toBeDisabled();
+  } finally {
+    await app.close();
+  }
+});

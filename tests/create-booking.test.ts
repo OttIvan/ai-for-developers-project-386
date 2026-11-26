@@ -174,3 +174,22 @@ test('invalid booking fields and starts fail the contract without reserving the 
     await app.close();
   }
 });
+
+test('an exact booking retry still conflicts after the booked day leaves the window', async () => {
+  let now = new Date('2026-11-25T21:00:00Z');
+  const app = buildApp({ eventTypes, now: () => now });
+  try {
+    const address = await app.listen({ host: '127.0.0.1', port: 0 });
+    await expectOpenApiResponse(await submitBooking(address, booking), bookingsPath, 'post', 201);
+
+    now = new Date('2026-11-26T20:00:00Z');
+    const repeated = await submitBooking(address, { ...booking, startAt: '2026-11-27T06:00:00Z' });
+    expect(await expectOpenApiResponse(repeated, bookingsPath, 'post', 409)).toMatchObject({ code: 'SLOT_TAKEN' });
+
+    const expired = await submitBooking(address, { ...booking, guestName: 'Борис' });
+    expect(await expectOpenApiResponse(expired, bookingsPath, 'post', 400)).toMatchObject({ code: 'INVALID_INPUT' });
+    expect(await listUpcomingBookings(address)).toHaveLength(1);
+  } finally {
+    await app.close();
+  }
+});

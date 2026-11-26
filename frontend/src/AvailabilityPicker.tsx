@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { createBooking, listSlots } from './api/generated/sdk.gen';
 import type { AvailabilityCalendar, Booking, EventType } from './api/generated/types.gen';
@@ -10,18 +10,58 @@ type AvailabilityState =
   | { status: 'error' };
 
 type Submission =
-  | { status: 'idle' | 'saving' }
+  | { status: 'idle' }
   | { status: 'error'; message: string }
   | { status: 'saved'; booking: Booking };
 
-export function AvailabilityPicker({ eventType }: { eventType: EventType }) {
+const calendarTimezone: AvailabilityCalendar['timezone'] = 'Asia/Tbilisi';
+const calendarClock = new Intl.DateTimeFormat('en-GB', {
+  timeZone: calendarTimezone,
+  timeStyle: 'medium',
+  hourCycle: 'h23',
+});
+
+export function AvailabilityPicker({ eventType, saving, setSaving }: {
+  eventType: EventType;
+  saving: boolean;
+  setSaving: (saving: boolean) => void;
+}) {
   const [availability, setAvailability] = useState<AvailabilityState>({ status: 'loading' });
   const [selectedDate, setSelectedDate] = useState<string>();
   const [selectedStart, setSelectedStart] = useState<string>();
   const [guestName, setGuestName] = useState('');
   const [submission, setSubmission] = useState<Submission>({ status: 'idle' });
   const [availabilityRevision, setAvailabilityRevision] = useState(0);
-  const saving = submission.status === 'saving';
+
+  const refreshAvailability = useCallback(() => {
+    setAvailability({ status: 'loading' });
+    setAvailabilityRevision((revision) => revision + 1);
+  }, []);
+
+  const saved = submission.status === 'saved';
+  useEffect(() => {
+    if (saved) {
+      return;
+    }
+
+    const now = new Date();
+    const [hours, minutes, seconds] = calendarClock.format(now).split(':').map(Number);
+    const delay = (86_400 - (hours * 3_600 + minutes * 60 + seconds)) * 1_000 - now.getMilliseconds();
+    const midnight = now.getTime() + delay;
+    const timer = window.setTimeout(refreshAvailability, delay);
+    function refreshOnReturn() {
+      if (!document.hidden && Date.now() >= midnight) {
+        window.clearTimeout(timer);
+        refreshAvailability();
+      }
+    }
+    document.addEventListener('visibilitychange', refreshOnReturn);
+
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener('visibilitychange', refreshOnReturn);
+    };
+  }, [availabilityRevision, refreshAvailability, saved]);
 
   useEffect(() => {
     const request = new AbortController();
@@ -33,6 +73,10 @@ export function AvailabilityPicker({ eventType }: { eventType: EventType }) {
       ({ data }) => {
         if (!request.signal.aborted) {
           setAvailability({ status: 'loaded', calendar: data });
+          setSelectedDate((date) => data.days.some((day) => day.date === date) ? date : undefined);
+          setSelectedStart((start) => data.days.some((day) =>
+            day.slots.some(({ startAt }) => startAt === start),
+          ) ? start : undefined);
         }
       },
       () => {
@@ -45,35 +89,56 @@ export function AvailabilityPicker({ eventType }: { eventType: EventType }) {
     return () => request.abort();
   }, [eventType.id, availabilityRevision]);
 
-  function refreshAvailability() {
-    setAvailability({ status: 'loading' });
-    setAvailabilityRevision((revision) => revision + 1);
-  }
-
   async function submitBooking(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selectedStart || !guestName.trim() || saving) {
       return;
     }
 
-    setSubmission({ status: 'saving' });
-    const result = await createBooking({
-      body: { eventTypeId: eventType.id, startAt: selectedStart, guestName },
-    }).catch(() => undefined);
+    setSubmission({ status: 'idle' });
+    setSaving(true);
+    try {
+      const result = await createBooking({
+        body: { eventTypeId: eventType.id, startAt: selectedStart, guestName },
+      }).catch(() => undefined);
 
-    if (result?.data) {
-      setSubmission({ status: 'saved', booking: result.data });
-      return;
-    }
+      if (result?.data) {
+        setSubmission({ status: 'saved', booking: result.data });
+        return;
+      }
 
-    if (result?.error?.code === 'SLOT_TAKEN') {
-      setSelectedStart(undefined);
-      refreshAvailability();
+      if (result?.error?.code === 'SLOT_TAKEN' || result?.error?.code === 'INVALID_INPUT') {
+        setSelectedStart(undefined);
+        refreshAvailability();
+      }
+      setSubmission({
+        status: 'error',
+        message: result?.error?.message ?? 'Не удалось записаться. Попробуйте ещё раз.',
+      });
+    } finally {
+      setSaving(false);
     }
-    setSubmission({
-      status: 'error',
-      message: result?.error?.message ?? 'Не удалось записаться. Попробуйте ещё раз.',
-    });
+  }
+
+  const timezone = availability.status === 'loaded' ? availability.calendar.timezone : calendarTimezone;
+  const formatTime = new Intl.DateTimeFormat('ru-RU', {
+    timeZone: timezone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  });
+  if (submission.status === 'saved') {
+    const { booking } = submission;
+    const date = new Intl.DateTimeFormat('ru-RU', { timeZone: timezone, dateStyle: 'long' });
+    return (
+      <section className="availability" aria-labelledby="booking-confirmation-title">
+        <h2 id="booking-confirmation-title">Запись подтверждена</h2>
+        <p role="status">
+          {booking.eventTypeTitle}, {date.format(new Date(booking.startAt))},{' '}
+          {formatTime.format(new Date(booking.startAt))}–{formatTime.format(new Date(booking.endAt))} ({timezone})
+        </p>
+      </section>
+    );
   }
 
   const feedback = submission.status === 'error' && <p role="alert">{submission.message}</p>;
@@ -96,7 +161,7 @@ export function AvailabilityPicker({ eventType }: { eventType: EventType }) {
     );
   }
 
-  const { timezone, days } = availability.calendar;
+  const { days } = availability.calendar;
   const day = days.find(({ date }) => date === selectedDate);
   const formatDate = new Intl.DateTimeFormat('ru-RU', {
     timeZone: timezone,
@@ -104,27 +169,6 @@ export function AvailabilityPicker({ eventType }: { eventType: EventType }) {
     day: 'numeric',
     month: 'short',
   });
-  const formatTime = new Intl.DateTimeFormat('ru-RU', {
-    timeZone: timezone,
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-  });
-
-  if (submission.status === 'saved') {
-    const { booking } = submission;
-    const date = new Intl.DateTimeFormat('ru-RU', { timeZone: timezone, dateStyle: 'long' });
-    return (
-      <section className="availability" aria-labelledby="booking-confirmation-title">
-        <h2 id="booking-confirmation-title">Запись подтверждена</h2>
-        <p role="status">
-          {booking.eventTypeTitle}, {date.format(new Date(booking.startAt))},{' '}
-          {formatTime.format(new Date(booking.startAt))}–{formatTime.format(new Date(booking.endAt))} ({timezone})
-        </p>
-      </section>
-    );
-  }
-
   return (
     <section className="availability" aria-labelledby="availability-title">
       <h2 id="availability-title">Свободное время</h2>
@@ -168,7 +212,7 @@ export function AvailabilityPicker({ eventType }: { eventType: EventType }) {
         </div>
       )}
       {selectedDate && !day?.slots.length && <p>На выбранную дату свободных слотов нет.</p>}
-      {selectedDate && (
+      {(selectedDate || guestName) && (
         <form className="booking-form" onSubmit={submitBooking}>
           <label>
             Ваше имя

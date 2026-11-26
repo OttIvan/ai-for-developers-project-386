@@ -11,6 +11,7 @@ type CatalogState =
 export function BookingPage() {
   const [catalog, setCatalog] = useState<CatalogState>({ status: 'loading' });
   const [eventType, setEventType] = useState<EventType>();
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const request = new AbortController();
@@ -36,17 +37,25 @@ export function BookingPage() {
       {catalog.status === 'loading' && <p role="status">Загружаем типы встреч…</p>}
       {catalog.status === 'error' && <p role="alert">Не удалось загрузить типы встреч.</p>}
       {catalog.status === 'loaded' && (
-        <EventTypeCatalog eventTypes={catalog.eventTypes} selectedId={eventType?.id} onSelect={setEventType} />
+        <EventTypeCatalog
+          eventTypes={catalog.eventTypes}
+          selectedId={eventType?.id}
+          disabled={saving}
+          onSelect={setEventType}
+        />
       )}
-      {eventType && <AvailabilityPicker key={eventType.id} eventType={eventType} />}
+      {eventType && (
+        <AvailabilityPicker key={eventType.id} eventType={eventType} saving={saving} setSaving={setSaving} />
+      )}
       <a className="back-link" href="/">На главную</a>
     </>
   );
 }
 
-export function EventTypeCatalog({ eventTypes, selectedId, onSelect }: {
+export function EventTypeCatalog({ eventTypes, selectedId, disabled, onSelect }: {
   eventTypes: readonly EventType[];
   selectedId?: string;
+  disabled?: boolean;
   onSelect?: (eventType: EventType) => void;
 }) {
   if (eventTypes.length === 0) {
@@ -66,6 +75,7 @@ export function EventTypeCatalog({ eventTypes, selectedId, onSelect }: {
               type="button"
               aria-label={`Выбрать время: ${eventType.title}`}
               aria-pressed={selectedId === eventType.id}
+              disabled={disabled}
               onClick={() => onSelect(eventType)}
             >
               Выбрать время

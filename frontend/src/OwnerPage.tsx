@@ -76,7 +76,7 @@ function EventTypeForm() {
         </label>
         <label>
           Длительность (мин)
-          <input name="durationMinutes" type="number" min={1} max={2_147_483_647} step={1} required />
+          <input name="durationMinutes" type="number" min={1} max={Number.MAX_SAFE_INTEGER} step={1} required />
         </label>
         <button className="primary-link" type="submit">{saving ? 'Сохраняем…' : 'Создать тип встречи'}</button>
       </fieldset>

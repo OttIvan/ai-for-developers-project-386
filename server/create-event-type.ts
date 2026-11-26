@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { EventType } from '../frontend/src/api/generated/types.gen.ts';
+import { isEventTypeId } from './event-type-id.ts';
 
 const invalidInput = {
   code: 'INVALID_INPUT',
@@ -13,11 +14,10 @@ function parseEventType(body: unknown): EventType | undefined {
 
   const { id, title, description, durationMinutes } = body as Record<string, unknown>;
   if (
-    typeof id !== 'string' || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(id)
+    !isEventTypeId(id)
     || typeof title !== 'string' || !title.trim()
     || typeof description !== 'string' || !description.trim()
-    || typeof durationMinutes !== 'number' || !Number.isInteger(durationMinutes)
-    || durationMinutes < 1 || durationMinutes > 2_147_483_647
+    || typeof durationMinutes !== 'number' || !Number.isSafeInteger(durationMinutes) || durationMinutes < 1
   ) {
     return;
   }
